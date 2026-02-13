@@ -71,7 +71,7 @@ python main.py -u [https://target.com](https://target.com) --json output.json
 ## 📜 License
 MIT License
 
-##🛡️ Responsible Usage
+## 🛡️ Responsible Usage
 
 This tool is intended for:
 - Authorized security testing.
