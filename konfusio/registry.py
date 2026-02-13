@@ -1,10 +1,17 @@
 import requests
 
 NPM_REGISTRY = "https://registry.npmjs.org/"
+_cache = {}
 
 def check_package(package):
+    if package in _cache:
+        return _cache[package]
+
     try:
         r = requests.get(NPM_REGISTRY + package, timeout=5)
-        return r.status_code != 404
+        exists = r.status_code != 404
     except:
-        return True
+        exists = True
+
+    _cache[package] = exists
+    return exists
