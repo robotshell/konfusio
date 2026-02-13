@@ -57,18 +57,42 @@ Analyze direct JS file list
 python main.py --js-list js.txt
 ```
 
-## 🔍 Example Output
+Multi-registry scanning
 ```bash
-[HIGH]   @company/internal-auth   | Exists: False | Score: 10
-[MEDIUM] company-logger           | Exists: False | Score: 6
-[LOW]    lodash                   | Exists: True  | Score: 1
+python main.py -u https://target.com --multi
 ```
 
-## JSON Output
-Generate structured output:
+Aggressive mode
 ```bash
-python main.py -u [https://target.com](https://target.com) --json output.json
+python main.py -u https://target.com --multi --aggressive
 ```
+
+JSON output
+```bash
+python main.py -u https://target.com --json output.json
+```
+
+## 🔍 Example Output
+```bash
+Target: https://example.com
+JS files: 42
+Dependencies found: 87
+Potential risks: 5
+
+[HIGH]   @acme/internal-auth (npm=False, PyPI=True, Maven=False) Score: 10
+[MEDIUM] acme-logger (npm=False, PyPI=False) Score: 6
+[LOW]    lodash (npm=True) Score: 1
+```
+
+## 📐 Scoring Logic
+- Registry not found → +5 per registry
+- Private registry detected → +5
+- Name contains company hint → +3
+
+Severity:
+- 8+ → HIGH
+- 4–7 → MEDIUM
+- 0–3 → LOW
 
 ## 📜 License
 MIT License
