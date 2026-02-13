@@ -1,29 +1,26 @@
 from colorama import Fore, Style, init
-
 init(autoreset=True)
 
 def print_results(results, target=None):
     if target:
         print(f"\nTarget: {target}")
+    print(f"Dependencies found: {len(results)}\n")
 
-    if not results:
-        print("No dependencies found.")
-        return
+    for r in results:
+        severity = r.get("severity", "UNKNOWN")
+        name = r.get("name")
+        registries = r.get("registries", {})
+        score = r.get("score", 0)
 
-    high = medium = low = 0
-
-    for r in sorted(results, key=lambda x: x["score"], reverse=True):
-        if r["severity"] == "HIGH":
+        # Color según severidad
+        if severity == "HIGH":
             color = Fore.RED
-            high += 1
-        elif r["severity"] == "MEDIUM":
+        elif severity == "MEDIUM":
             color = Fore.YELLOW
-            medium += 1
         else:
             color = Fore.GREEN
-            low += 1
 
-        print(color + f"[{r['severity']}] {r['name']} (Exists: {r['exists']}, Score: {r['score']})")
+        # Formatear registries
+        reg_str = ", ".join(f"{k}:{'Yes' if v else 'No'}" for k, v in registries.items())
 
-    print("\nSummary:")
-    print(f"HIGH: {high} | MEDIUM: {medium} | LOW: {low}")
+        print(color + f"[{severity}] {name} (Registries: {reg_str}, Score: {score})")
