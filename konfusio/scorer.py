@@ -1,14 +1,15 @@
-def calculate_score(package, exists_publicly, company_hint=None):
+def calculate_score_multi(package, registry_results, company_hint=None, private_registry=False):
     score = 0
 
-    if package.startswith("@"):
-        score += 2
+    for registry, exists in registry_results.items():
+        if not exists:
+            score += 5
+
+    if private_registry:
+        score += 5
 
     if company_hint and company_hint in package.lower():
         score += 3
-
-    if not exists_publicly:
-        score += 5
 
     if score >= 8:
         severity = "HIGH"
