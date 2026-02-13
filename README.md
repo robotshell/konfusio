@@ -1,4 +1,3 @@
-# konfusio
 # Konfusio
 
 Konfusio is a minimalistic yet solid Dependency Confusion hunting tool designed for Bug Bounty hunters and offensive security researchers.
