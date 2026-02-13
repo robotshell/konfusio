@@ -1,32 +1,35 @@
 # Konfusio
 
-Konfusio is a minimalistic yet solid Dependency Confusion hunting tool designed for Bug Bounty hunters and offensive security researchers.
+**Konfusio** is a multi-ecosystem Dependency Confusion hunting tool for Bug Bounty hunters and security researchers.
 
-It automatically crawls a target, extracts JavaScript dependencies, checks them against the public npm registry, and highlights potential Dependency Confusion risks.
+It crawls targets, extracts dependencies, checks multiple public registries, and highlights potential supply-chain risks.
 
 ---
 
 ## 🚀 Features
 
-- Single URL scanning
-- Bulk target scanning
-- Direct JavaScript file analysis
-- Automatic JS discovery via crawling
-- Dependency extraction (ES6, CommonJS, dynamic imports)
-- Public npm registry verification
+- Multi-registry support:
+  - **npm** → JavaScript
+  - **PyPI** → Python
+  - **Maven Central** → Java
+  - **RubyGems** → Ruby
+  - **Packagist** → PHP
+  - **Go Modules** → Go
+  - **NuGet** → .NET
+- Single URL or multiple targets
+- Direct JS or source file analysis
+- Sourcemap support for real dependency detection
+- Detection of private/internal registries
+- Multi-threaded HTTP requests
 - Intelligent scoring system
-- JSON output support
-- Clean modular architecture
+- JSON and CLI output
+- Extensible modular registry architecture
 
 ---
 
 ## 🧠 What is Dependency Confusion?
 
-Dependency Confusion is a supply-chain attack technique where internal/private package names are accidentally exposed and can be claimed in public registries.
-
-This technique was popularized by security researcher Alex Birsan.
-
-Konfusio helps identify potentially exposed internal package names from frontend JavaScript assets.
+Dependency Confusion occurs when private/internal package names are accidentally exposed and claimed in public registries. Konfusio helps identify these risks across multiple languages and ecosystems.
 
 ---
 
