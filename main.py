@@ -10,8 +10,8 @@ from konfusio.parser import (
     extract_sourcemap_url,
     extract_from_sourcemap,
 )
-from konfusio.registry import check_package
-from konfusio.scorer import calculate_score
+from konfusio.registry_manager import check_all_registries
+from konfusio.scorer import calculate_score_multi
 from konfusio.output import print_results
 
 
@@ -31,10 +31,10 @@ def fetch(url):
 def analyze_js(js_url):
     content = fetch(js_url)
     if not content:
-        return set(), set()
+        return set(), set(), False
 
     packages = extract_dependencies(content)
-    registries = extract_registries(content)
+    private_registry_detected = bool(extract_registries(content))
 
     # Sourcemap handling
     sm_url = extract_sourcemap_url(content)
@@ -43,7 +43,7 @@ def analyze_js(js_url):
         sm_content = fetch(full_sm_url)
         packages.update(extract_from_sourcemap(sm_content))
 
-    return packages, registries
+    return packages, private_registry_detected
 
 
 def main():
@@ -73,30 +73,34 @@ def main():
             js_urls = {line.strip() for line in f}
 
     all_packages = set()
-    all_registries = set()
+    private_registry_detected = False
 
+    # Threaded analysis
     with ThreadPoolExecutor(max_workers=args.threads) as executor:
         futures = [executor.submit(analyze_js, js) for js in js_urls]
         for future in futures:
-            packages, registries = future.result()
+            packages, private = future.result()
             all_packages.update(packages)
-            all_registries.update(registries)
+            if private:
+                private_registry_detected = True
 
     results = []
 
+    # Threaded multi-registry check
     with ThreadPoolExecutor(max_workers=args.threads) as executor:
-        futures = {executor.submit(check_package, pkg): pkg for pkg in all_packages}
+        futures = {executor.submit(check_all_registries, pkg): pkg for pkg in all_packages}
         for future in futures:
             pkg = futures[future]
-            exists = future.result()
-            score, severity = calculate_score(pkg, exists, company_hint)
-
-            if all_registries:
-                score += 5  # registry detected boost
-
+            registry_results = future.result()
+            score, severity = calculate_score_multi(
+                pkg,
+                registry_results,
+                company_hint=company_hint,
+                private_registry=private_registry_detected
+            )
             results.append({
                 "name": pkg,
-                "exists": exists,
+                "registries": registry_results,
                 "score": score,
                 "severity": severity
             })
