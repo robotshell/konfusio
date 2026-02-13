@@ -1,56 +1,62 @@
 import requests
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urljoin
+from concurrent.futures import ThreadPoolExecutor
 
 from konfusio.cli import parse_args
 from konfusio.crawler import crawl_for_js
-from konfusio.parser import extract_dependencies
+from konfusio.parser import (
+    extract_dependencies,
+    extract_registries,
+    extract_sourcemap_url,
+    extract_from_sourcemap,
+)
 from konfusio.registry import check_package
 from konfusio.scorer import calculate_score
-from konfusio.output import print_results, save_json
+from konfusio.output import print_results
+
 
 def get_company_hint(url):
     domain = urlparse(url).netloc
     return domain.split(".")[0].lower()
 
-def fetch_js(url):
+
+def fetch(url):
     try:
         r = requests.get(url, timeout=10)
         return r.text
     except:
         return ""
 
-def process_js_list(js_urls, company_hint):
-    packages = set()
 
-    for js in js_urls:
-        content = fetch_js(js)
-        deps = extract_dependencies(content)
-        packages.update(deps)
+def analyze_js(js_url):
+    content = fetch(js_url)
+    if not content:
+        return set(), set()
 
-    results = []
+    packages = extract_dependencies(content)
+    registries = extract_registries(content)
 
-    for package in packages:
-        exists = check_package(package)
-        score, severity = calculate_score(package, exists, company_hint)
+    # Sourcemap handling
+    sm_url = extract_sourcemap_url(content)
+    if sm_url:
+        full_sm_url = urljoin(js_url, sm_url)
+        sm_content = fetch(full_sm_url)
+        packages.update(extract_from_sourcemap(sm_content))
 
-        results.append({
-            "name": package,
-            "exists": exists,
-            "score": score,
-            "severity": severity
-        })
+    return packages, registries
 
-    return results
 
 def main():
     args = parse_args()
 
     if args.url:
-        company_hint = get_company_hint(args.url)
-        js_urls = crawl_for_js(args.url, depth=args.depth)
+        target = args.url
+        company_hint = get_company_hint(target)
+        js_urls = crawl_for_js(target, depth=args.depth)
 
     elif args.list:
         js_urls = set()
+        target = None
         company_hint = None
         with open(args.list) as f:
             for line in f:
@@ -61,16 +67,42 @@ def main():
                     js_urls.update(crawl_for_js(url, depth=args.depth))
 
     elif args.js_list:
+        target = None
         company_hint = None
         with open(args.js_list) as f:
             js_urls = {line.strip() for line in f}
 
-    results = process_js_list(js_urls, company_hint)
+    all_packages = set()
+    all_registries = set()
 
-    print_results(results)
+    with ThreadPoolExecutor(max_workers=args.threads) as executor:
+        futures = [executor.submit(analyze_js, js) for js in js_urls]
+        for future in futures:
+            packages, registries = future.result()
+            all_packages.update(packages)
+            all_registries.update(registries)
 
-    if args.json:
-        save_json(results, args.json)
+    results = []
+
+    with ThreadPoolExecutor(max_workers=args.threads) as executor:
+        futures = {executor.submit(check_package, pkg): pkg for pkg in all_packages}
+        for future in futures:
+            pkg = futures[future]
+            exists = future.result()
+            score, severity = calculate_score(pkg, exists, company_hint)
+
+            if all_registries:
+                score += 5  # registry detected boost
+
+            results.append({
+                "name": pkg,
+                "exists": exists,
+                "score": score,
+                "severity": severity
+            })
+
+    print_results(results, target)
+
 
 if __name__ == "__main__":
     main()
