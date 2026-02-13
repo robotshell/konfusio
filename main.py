@@ -1,6 +1,7 @@
 import requests
 from urllib.parse import urlparse, urljoin
-from concurrent.futures import ThreadPoolExecutor
+from tqdm import tqdm
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from konfusio.cli import parse_args
 from konfusio.crawler import crawl_for_js
@@ -31,7 +32,7 @@ def fetch(url):
 def analyze_js(js_url):
     content = fetch(js_url)
     if not content:
-        return set(), set(), False
+        return set(), False
 
     packages = extract_dependencies(content)
     private_registry_detected = bool(extract_registries(content))
@@ -49,11 +50,11 @@ def analyze_js(js_url):
 def main():
     args = parse_args()
 
+    # Determinar URLs JS a analizar
     if args.url:
         target = args.url
         company_hint = get_company_hint(target)
         js_urls = crawl_for_js(target, depth=args.depth)
-
     elif args.list:
         js_urls = set()
         target = None
@@ -65,7 +66,6 @@ def main():
                     js_urls.add(url)
                 else:
                     js_urls.update(crawl_for_js(url, depth=args.depth))
-
     elif args.js_list:
         target = None
         company_hint = None
@@ -75,21 +75,20 @@ def main():
     all_packages = set()
     private_registry_detected = False
 
-    # Threaded analysis
+    # 🔹 Analizar JS con barra de progreso
     with ThreadPoolExecutor(max_workers=args.threads) as executor:
         futures = [executor.submit(analyze_js, js) for js in js_urls]
-        for future in futures:
+        for future in tqdm(as_completed(futures), total=len(futures), desc="Analyzing JS files"):
             packages, private = future.result()
             all_packages.update(packages)
             if private:
                 private_registry_detected = True
 
+    # 🔹 Verificar packages en todos los registries con barra de progreso
     results = []
-
-    # Threaded multi-registry check
     with ThreadPoolExecutor(max_workers=args.threads) as executor:
         futures = {executor.submit(check_all_registries, pkg): pkg for pkg in all_packages}
-        for future in futures:
+        for future in tqdm(as_completed(futures), total=len(futures), desc="Checking registries"):
             pkg = futures[future]
             registry_results = future.result()
             score, severity = calculate_score_multi(
@@ -105,7 +104,15 @@ def main():
                 "severity": severity
             })
 
+    # 🔹 Imprimir resultados
     print_results(results, target)
+
+    # 🔹 Guardar JSON si se pasó flag
+    if args.json:
+        import json
+        with open(args.json, "w") as f:
+            json.dump(results, f, indent=4)
+        print(f"\nResults saved to {args.json}")
 
 
 if __name__ == "__main__":
