@@ -4,36 +4,31 @@ from urllib.parse import urlparse
 from konfusio.cli import parse_args
 from konfusio.crawler import crawl
 from konfusio.fetcher import fetch
-from konfusio.detector import detect_ecosystem
+from konfusio.parsers.js_parser import parse_js
 from konfusio.registry_router import check_registry
 from konfusio.risk import is_potential_confusion
 from konfusio.output import print_results, export_json
 
 
-def analyze_files(file_urls):
+def analyze_js_list(js_urls):
     findings = []
 
-    for file_url in tqdm(file_urls, desc="Analyzing JS files"):
+    for file_url in tqdm(js_urls, desc="Analyzing JS files"):
         content = fetch(file_url)
 
         if not content:
             continue
 
-        ecosystem, parser = detect_ecosystem(file_url, content)
-
-        if not ecosystem or not parser:
-            continue
-
-        packages = parser(content)
+        packages = parse_js(content)
 
         for pkg in packages:
-            exists = check_registry(pkg, ecosystem)
+            exists = check_registry(pkg, "npm")
 
-            if is_potential_confusion(pkg, exists, ecosystem, file_url):
+            if is_potential_confusion(pkg, exists, "npm", file_url):
                 findings.append({
                     "target": file_url,
                     "package": pkg,
-                    "ecosystem": ecosystem,
+                    "ecosystem": "npm",
                     "source_file": file_url
                 })
 
@@ -45,15 +40,15 @@ def analyze_target(url):
 
     discovered_files = crawl(url)
 
-    if not discovered_files:
-        return findings
+    for file_url in tqdm(discovered_files,
+                         desc=f"Analyzing files ({urlparse(url).netloc})",
+                         leave=False):
 
-    for file_url in tqdm(discovered_files, desc=f"Analyzing files ({urlparse(url).netloc})", leave=False):
         content = fetch(file_url)
-
         if not content:
             continue
 
+        from konfusio.detector import detect_ecosystem
         ecosystem, parser = detect_ecosystem(file_url, content)
 
         if not ecosystem or not parser:
@@ -75,37 +70,36 @@ def analyze_target(url):
     return findings
 
 
-def load_targets(args):
-    if args.url:
-        return [args.url], False
-
+def load_list(path):
     targets = []
-    with open(args.list) as f:
+    with open(path) as f:
         for line in f:
             line = line.strip()
             if line:
                 targets.append(line)
-
-    js_count = sum(1 for t in targets if t.endswith(".js"))
-
-    if js_count == len(targets):
-        return targets, True  # JS mode
-
-    return targets, False
+    return targets
 
 
 def main():
     args = parse_args()
 
-    targets, js_mode = load_targets(args)
-
     all_findings = []
 
-    if js_mode:
-        results = analyze_files(targets)
+    if args.js_mode:
+        if args.list:
+            js_urls = load_list(args.list)
+        else:
+            js_urls = [args.url]
+
+        results = analyze_js_list(js_urls)
         all_findings.extend(results)
 
     else:
+        if args.url:
+            targets = [args.url]
+        else:
+            targets = load_list(args.list)
+
         for target in tqdm(targets, desc="Scanning targets"):
             results = analyze_target(target)
             all_findings.extend(results)
