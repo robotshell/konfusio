@@ -32,19 +32,32 @@ def fetch(url):
 def analyze_js(js_url):
     content = fetch(js_url)
     if not content:
-        return set(), False
+        return {}
 
     packages = extract_dependencies(content)
     private_registry_detected = bool(extract_registries(content))
 
-    # Sourcemap handling
+    results = {}
+
+    for pkg in packages:
+        if len(pkg) < 4:
+            continue
+        if "," in pkg or " " in pkg:
+            continue
+        results[pkg] = js_url
+
+    # Sourcemap
     sm_url = extract_sourcemap_url(content)
     if sm_url:
         full_sm_url = urljoin(js_url, sm_url)
         sm_content = fetch(full_sm_url)
-        packages.update(extract_from_sourcemap(sm_content))
+        sm_packages = extract_from_sourcemap(sm_content)
+        for pkg in sm_packages:
+            if len(pkg) < 4:
+                continue
+            results[pkg] = js_url + " (sourcemap)"
 
-    return packages, private_registry_detected
+    return results
 
 
 def main():
