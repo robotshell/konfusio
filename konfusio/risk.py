@@ -1,3 +1,15 @@
+import re
+
+CORPORATE_PATTERNS = [
+    r"^@.*\/.*",         # scoped npm
+    r".*internal.*",
+    r".*corp.*",
+    r".*private.*",
+    r".*auth.*",
+    r".*core.*",
+    r".*shared.*"
+]
+
 def is_potential_confusion(pkg, exists, ecosystem, source):
     if exists:
         return False
@@ -5,12 +17,8 @@ def is_potential_confusion(pkg, exists, ecosystem, source):
     if len(pkg) < 4:
         return False
 
-    suspicious_keywords = ["internal", "core", "auth", "shared", "private"]
-
-    if pkg.startswith("@"):
-        return True
-
-    if any(word in pkg.lower() for word in suspicious_keywords):
-        return True
+    for pattern in CORPORATE_PATTERNS:
+        if re.match(pattern, pkg.lower()):
+            return True
 
     return False
