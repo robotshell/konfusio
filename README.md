@@ -65,6 +65,11 @@ Scan multiple targets
 python main.py -l targets.txt
 ```
 
+Scan multiple targets JS mode
+```bash
+python main.py -l targets_js.txt --js-mode
+```
+
 JSON output
 ```bash
 python main.py -u https://target.com --json report.json
