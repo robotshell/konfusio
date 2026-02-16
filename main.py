@@ -1,131 +1,50 @@
-import requests
-from urllib.parse import urlparse, urljoin
-from tqdm import tqdm
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from tqdm import tqdm
 
 from konfusio.cli import parse_args
-from konfusio.crawler import crawl_for_js
-from konfusio.parser import (
-    extract_dependencies,
-    extract_registries,
-    extract_sourcemap_url,
-    extract_from_sourcemap,
-)
-from konfusio.registry_manager import check_all_registries
-from konfusio.scorer import calculate_score_multi
+from konfusio.fetcher import fetch
+from konfusio.detector import detect_ecosystem
+from konfusio.registry_router import check_registry
+from konfusio.risk import is_potential_confusion
 from konfusio.output import print_results
-
-
-def get_company_hint(url):
-    domain = urlparse(url).netloc
-    return domain.split(".")[0].lower()
-
-
-def fetch(url):
-    try:
-        r = requests.get(url, timeout=10)
-        return r.text
-    except:
-        return ""
-
-
-def analyze_js(js_url):
-    content = fetch(js_url)
-    if not content:
-        return {}
-
-    packages = extract_dependencies(content)
-    private_registry_detected = bool(extract_registries(content))
-
-    results = {}
-
-    for pkg in packages:
-        if len(pkg) < 4:
-            continue
-        if "," in pkg or " " in pkg:
-            continue
-        results[pkg] = js_url
-
-    # Sourcemap
-    sm_url = extract_sourcemap_url(content)
-    if sm_url:
-        full_sm_url = urljoin(js_url, sm_url)
-        sm_content = fetch(full_sm_url)
-        sm_packages = extract_from_sourcemap(sm_content)
-        for pkg in sm_packages:
-            if len(pkg) < 4:
-                continue
-            results[pkg] = js_url + " (sourcemap)"
-
-    return results
 
 
 def main():
     args = parse_args()
 
-    # Determinar URLs JS a analizar
+    targets = []
     if args.url:
-        target = args.url
-        company_hint = get_company_hint(target)
-        js_urls = crawl_for_js(target, depth=args.depth)
-    elif args.list:
-        js_urls = set()
-        target = None
-        company_hint = None
-        with open(args.list) as f:
-            for line in f:
-                url = line.strip()
-                if url.endswith(".js"):
-                    js_urls.add(url)
-                else:
-                    js_urls.update(crawl_for_js(url, depth=args.depth))
-    elif args.js_list:
-        target = None
-        company_hint = None
-        with open(args.js_list) as f:
-            js_urls = {line.strip() for line in f}
+        targets.append(args.url)
+    elif args.file:
+        with open(args.file) as f:
+            targets = [x.strip() for x in f if x.strip()]
 
-    all_packages = set()
-    private_registry_detected = False
+    findings = []
 
-    # 🔹 Analizar JS con barra de progreso
     with ThreadPoolExecutor(max_workers=args.threads) as executor:
-        futures = [executor.submit(analyze_js, js) for js in js_urls]
-        for future in tqdm(as_completed(futures), total=len(futures), desc="Analyzing JS files"):
-            packages, private = future.result()
-            all_packages.update(packages)
-            if private:
-                private_registry_detected = True
+        futures = {executor.submit(fetch, url): url for url in targets}
 
-    # 🔹 Verificar packages en todos los registries con barra de progreso
-    results = []
-    with ThreadPoolExecutor(max_workers=args.threads) as executor:
-        futures = {executor.submit(check_all_registries, pkg): pkg for pkg in all_packages}
-        for future in tqdm(as_completed(futures), total=len(futures), desc="Checking registries"):
-            pkg = futures[future]
-            registry_results = future.result()
-            score, severity = calculate_score_multi(
-                pkg,
-                registry_results,
-                company_hint=company_hint,
-                private_registry=private_registry_detected
-            )
-            results.append({
-                "name": pkg,
-                "registries": registry_results,
-                "score": score,
-                "severity": severity
-            })
+        for future in tqdm(as_completed(futures), total=len(futures), desc="Fetching targets"):
+            url = futures[future]
+            content = future.result()
 
-    # 🔹 Imprimir resultados
-    print_results(results, target)
+            ecosystem, parser = detect_ecosystem(url, content)
+            if not ecosystem:
+                continue
 
-    # 🔹 Guardar JSON si se pasó flag
-    if args.json:
-        import json
-        with open(args.json, "w") as f:
-            json.dump(results, f, indent=4)
-        print(f"\nResults saved to {args.json}")
+            packages = parser(content)
+
+            for pkg in packages:
+                exists = check_registry(pkg, ecosystem)
+
+                if is_potential_confusion(pkg, exists, ecosystem, url):
+                    findings.append({
+                        "package": pkg,
+                        "ecosystem": ecosystem,
+                        "source": url
+                    })
+
+    print_results(findings)
 
 
 if __name__ == "__main__":
