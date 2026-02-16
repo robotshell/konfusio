@@ -1,4 +1,3 @@
-from concurrent.futures import ThreadPoolExecutor
 from tqdm import tqdm
 from urllib.parse import urlparse
 
@@ -11,7 +10,37 @@ from konfusio.risk import is_potential_confusion
 from konfusio.output import print_results, export_json
 
 
-def analyze_target(url, threads):
+def analyze_files(file_urls):
+    findings = []
+
+    for file_url in tqdm(file_urls, desc="Analyzing JS files"):
+        content = fetch(file_url)
+
+        if not content:
+            continue
+
+        ecosystem, parser = detect_ecosystem(file_url, content)
+
+        if not ecosystem or not parser:
+            continue
+
+        packages = parser(content)
+
+        for pkg in packages:
+            exists = check_registry(pkg, ecosystem)
+
+            if is_potential_confusion(pkg, exists, ecosystem, file_url):
+                findings.append({
+                    "target": file_url,
+                    "package": pkg,
+                    "ecosystem": ecosystem,
+                    "source_file": file_url
+                })
+
+    return findings
+
+
+def analyze_target(url):
     findings = []
 
     discovered_files = crawl(url)
@@ -21,6 +50,10 @@ def analyze_target(url, threads):
 
     for file_url in tqdm(discovered_files, desc=f"Analyzing files ({urlparse(url).netloc})", leave=False):
         content = fetch(file_url)
+
+        if not content:
+            continue
+
         ecosystem, parser = detect_ecosystem(file_url, content)
 
         if not ecosystem or not parser:
@@ -44,7 +77,7 @@ def analyze_target(url, threads):
 
 def load_targets(args):
     if args.url:
-        return [args.url]
+        return [args.url], False
 
     targets = []
     with open(args.list) as f:
@@ -53,19 +86,29 @@ def load_targets(args):
             if line:
                 targets.append(line)
 
-    return targets
+    js_count = sum(1 for t in targets if t.endswith(".js"))
+
+    if js_count == len(targets):
+        return targets, True  # JS mode
+
+    return targets, False
 
 
 def main():
     args = parse_args()
 
-    targets = load_targets(args)
+    targets, js_mode = load_targets(args)
 
     all_findings = []
 
-    for target in tqdm(targets, desc="Scanning targets"):
-        results = analyze_target(target, args.threads)
+    if js_mode:
+        results = analyze_files(targets)
         all_findings.extend(results)
+
+    else:
+        for target in tqdm(targets, desc="Scanning targets"):
+            results = analyze_target(target)
+            all_findings.extend(results)
 
     print_results(all_findings)
 
