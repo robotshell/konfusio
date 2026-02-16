@@ -70,11 +70,6 @@ Analyze direct JS file list
 ```bash
 python main.py -l targets_js.txt --js-mode
 ```
-
-JSON output
-```bash
-python main.py -u https://target.com --json report.json
-```
 - --js-mode → Forces Konfusio to treat input as direct JS URLs
 
 - No crawling, no manifest discovery, only JS parser
@@ -82,6 +77,11 @@ python main.py -u https://target.com --json report.json
 - Only checks npm registry
 
 - Works well for thousands of JS files
+  
+JSON output
+```bash
+python main.py -u https://target.com --json report.json
+```
 
 ## 🔍 Example Output
 ```bash
