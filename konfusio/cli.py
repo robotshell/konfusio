@@ -12,9 +12,7 @@ def parse_args():
 
     parser.add_argument("--threads", type=int, default=5)
     parser.add_argument("--json", help="Export results to JSON file")
-
-    # 🔥 NEW
-    parser.add_argument("--js-mode", action="store_true",
-                        help="Force JS mode (treat input as direct JS URLs)")
+    parser.add_argument("--js-mode", action="store_true", help="Force JS mode (treat input as direct JS URLs)")
+    parser.add_argument("--verbose", action="store_true", help="Enable verbose output")
 
     return parser.parse_args()
