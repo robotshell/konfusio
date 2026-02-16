@@ -8,9 +8,13 @@ def parse_args():
 
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument("-u", "--url", help="Single target URL")
-    group.add_argument("-l", "--list", help="File containing list of target URLs")
+    group.add_argument("-l", "--list", help="File containing list of URLs")
 
     parser.add_argument("--threads", type=int, default=5)
     parser.add_argument("--json", help="Export results to JSON file")
+
+    # 🔥 NEW
+    parser.add_argument("--js-mode", action="store_true",
+                        help="Force JS mode (treat input as direct JS URLs)")
 
     return parser.parse_args()
