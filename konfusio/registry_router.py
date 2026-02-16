@@ -1,19 +1,25 @@
-from konfusio.registries import npm, pypi, packagist, maven, golang, rubygems, nuget
+from konfusio.registries import npm, pypi, packagist, maven, golang, rubygems
+from konfusio.cache import get_cached, set_cache
 
 def check_registry(pkg, ecosystem):
-    if ecosystem == "npm":
-        return npm.exists(pkg)
-    if ecosystem == "pypi":
-        return pypi.exists(pkg)
-    if ecosystem == "packagist":
-        return packagist.exists(pkg)
-    if ecosystem == "maven":
-        return maven.exists(pkg)
-    if ecosystem == "golang":
-        return golang.exists(pkg)
-    if ecosystem == "rubygems":
-        return rubygems.exists(pkg)
-    if ecosystem == "nuget":
-        return nuget.exists(pkg)
+    cached = get_cached(pkg, ecosystem)
+    if cached is not None:
+        return cached
 
-    return True
+    if ecosystem == "npm":
+        result = npm.exists(pkg)
+    elif ecosystem == "pypi":
+        result = pypi.exists(pkg)
+    elif ecosystem == "packagist":
+        result = packagist.exists(pkg)
+    elif ecosystem == "maven":
+        result = maven.exists(pkg)
+    elif ecosystem == "golang":
+        result = golang.exists(pkg)
+    elif ecosystem == "rubygems":
+        result = rubygems.exists(pkg)
+    else:
+        result = True
+
+    set_cache(pkg, ecosystem, result)
+    return result
