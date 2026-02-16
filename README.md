@@ -26,6 +26,7 @@ Konfusio focuses on **exploitable** scenarios, not noisy multi-registry guessing
 - JSON export support
 - Registry caching to reduce duplicate queries
 - Modular registry architecture
+- Multi-threaded HTTP requests (--threads)
 
 ---
 
@@ -65,7 +66,7 @@ Scan multiple targets
 python main.py -l targets.txt
 ```
 
-Scan multiple targets JS mode
+Analyze direct JS file list
 ```bash
 python main.py -l targets_js.txt --js-mode
 ```
@@ -74,6 +75,13 @@ JSON output
 ```bash
 python main.py -u https://target.com --json report.json
 ```
+- --js-mode → Forces Konfusio to treat input as direct JS URLs
+
+- No crawling, no manifest discovery, only JS parser
+
+- Only checks npm registry
+
+- Works well for thousands of JS files
 
 ## 🔍 Example Output
 ```bash
