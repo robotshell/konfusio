@@ -2,7 +2,9 @@ import json
 from colorama import Fore, init
 init(autoreset=True)
 
+
 def print_results(findings):
+
     if not findings:
         print("\nNo Dependency Confusion risks detected.")
         return
@@ -11,9 +13,11 @@ def print_results(findings):
 
     for f in findings:
         print(Fore.RED + "--------------------------------")
+        print(Fore.MAGENTA + f"Target     : {f['target']}")
         print(Fore.YELLOW + f"Package    : {f['package']}")
         print(Fore.CYAN + f"Ecosystem  : {f['ecosystem']}")
         print(Fore.GREEN + f"Source file: {f['source_file']}")
+
 
 def export_json(findings, path):
     with open(path, "w") as f:
