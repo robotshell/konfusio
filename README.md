@@ -1,10 +1,10 @@
 # Konfusio
 
-**Konfusio* is a multi-ecosystem Dependency Confusion detection tool designed for serious Bug Bounty hunters and security researchers.
+**Konfusio** is a multi-ecosystem Dependency Confusion detection tool designed for serious Bug Bounty hunters and security researchers.
 
-It crawls targets, discovers dependency manifests automatically, extracts real package names, checks the correct public registry for each ecosystem, and highlights **realistic Dependency Confusion risks*.
+It crawls targets, discovers dependency manifests automatically, extracts real package names, checks the correct public registry for each ecosystem, and highlights **realistic Dependency Confusion risks**.
 
-Konfusio focuses on **exploitable* scenarios, not noisy multi-registry guessing
+Konfusio focuses on **exploitable** scenarios, not noisy multi-registry guessing
 
 ---
 
