@@ -2,6 +2,7 @@
   <br>
   <a href="https://github.com/robotshell/konfusio"><img src="https://i.ibb.co/TqmXRHSY/Gemini-Generated-Image-aohd4saohd4saohd.png" alt="konfusio" style="width:100%"></a>
 </h1>
+
 # Konfusio
 
 **Konfusio** is a multi-ecosystem Dependency Confusion detection tool designed for serious Bug Bounty hunters and security researchers.
