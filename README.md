@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="https://i.ibb.co/TqmXRHSY/Gemini-Generated-Image-aohd4saohd4saohd.png" alt="Konfusio Logo" width="800">
+  <img src="https://iili.io/qqePrp1.png" alt="Konfusio Logo" width="800">
 </div>
 
 # Konfusio
