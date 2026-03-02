@@ -1,6 +1,6 @@
 <h1 align="center">
   <br>
-  <a href="https://github.com/robotshell/konfusio"><img src="https://ibb.co/rf4PMZSF" alt="konfusio" style="width:100%"></a>
+  <a href="https://github.com/robotshell/konfusio"><img src="https://i.ibb.co/TqmXRHSY/Gemini-Generated-Image-aohd4saohd4saohd.png" alt="konfusio" style="width:100%"></a>
 </h1>
 # Konfusio
 
