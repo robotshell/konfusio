@@ -1,6 +1,7 @@
-<div align="center">
-  <img src="https://iili.io/qqePrp1.png" alt="Konfusio Logo" width="800">
-</div>
+<h1 align="center">
+  <br>
+  <a href="https://github.com/robotshell/konfusio"><img src="https://iili.io/qqePrp1.png" alt="konfusio" style="width:100%"></a>
+</h1>
 
 # Konfusio
 
